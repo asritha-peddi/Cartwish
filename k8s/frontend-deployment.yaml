@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartwish-frontend
+  labels:
+    app: cartwish-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartwish-frontend
+  template:
+    metadata:
+      labels:
+        app: cartwish-frontend
+    spec:
+      containers:
+        - name: cartwish-frontend
+          image: cartwish-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
