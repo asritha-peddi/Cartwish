@@ -1,0 +1,12 @@
+replicaCount: 2
+
+image:
+  repository: cartwish-frontend
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 80
+
+containerPort: 80
