@@ -14,7 +14,7 @@ const ProductCard = ({product}) => {
     <article className='product_card'>
         <div className="product_image">
           <NavLink to={`/products/${product?._id}`}>
-          <img src={`http://localhost:5000/products/${product?.images[0]}`} alt="product image" /></NavLink>
+          <img src={`${import.meta.env.VITE_BACKEND_URL}/products/${product?.images[0]}`} alt="product image" /></NavLink>
         </div>
         <div className="product_details">
           <h3 className="product_price">${product?.price}</h3>

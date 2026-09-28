@@ -42,7 +42,7 @@ const CartPage = () => {
 		<><section className=" align_center cart_page">
 			<div className="align_center user_info">
 				<img
-					src={`http://localhost:5000/profile/${userObj?.profilePic}`}
+					src={`${import.meta.env.VITE_BACKEND_URL}/profile/${userObj?.profilePic}`}
 					alt="user profile" />
 				<div>
 					<p className="user_name">Name: {userObj?.name}</p>

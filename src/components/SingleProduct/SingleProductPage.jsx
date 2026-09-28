@@ -23,14 +23,19 @@ const SingleProductPage = () => {
         <div className="single_product_thumbnails">
             {
                 product.images.map((image, index) => (
-                    <img key={index} src={`http://localhost:5000/products/${image}`} alt={product.title} className={selectedImage === index ? 'active' : ''} onClick={() => setSelectedImage(index)} />
+                    <img key={index} src={`${import.meta.env.VITE_BACKEND_URL}/products/${image}`} alt={product.title} className={selectedImage === index ? 'active' : ''} onClick={() => setSelectedImage(index)} />
                 ))
             }
-        </div>
-        <img src={`http://localhost:5000/products/${product.images[selectedImage]}`} alt={product.title} className='single_product_display' />
+ </div>
+
+        <img
+            src={`${import.meta.env.VITE_BACKEND_URL}/products/${product.images[selectedImage]}`}
+            alt={product.title}
+            className="single_product_display"
+        />
 
      </div>
-     <div className="single_product_details">
+             <div className="single_product_details">
         <h1 className="single_product_title">{product.title}</h1>
         <p className="single_product_description">{product.description}</p>
         <p className="single_product_price">${product.price.toFixed(2)}</p>
