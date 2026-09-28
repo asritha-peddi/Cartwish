@@ -1,48 +1,70 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
     environment {
-        IMAGE_NAME = "cartwish-frontend"
-        DOCKER = "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
-        KUBECTL = "C:\\Program Files\\Docker\\Docker\\resources\\bin\\kubectl.exe"
-        MINIKUBE = "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe"
-        KUBECONFIG = "C:\\Users\\VENU MADHAVI\\.kube\\config"
-        MINIKUBE_HOME = "C:\\Users\\VENU MADHAVI"
-        USERPROFILE = "C:\\Users\\VENU MADHAVI"
+        IMAGE_NAME = 'cartwish-frontend'
+        DEPLOYMENT_NAME = 'cartwish-frontend'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/asritha-peddi/Cartwish.git'
+                git branch: 'main',
+                    url: 'https://github.com/asritha-peddi/Cartwish.git'
+            }
+        }
+
+        stage('Verify Tools') {
+            steps {
+                bat 'docker --version'
+                bat 'kubectl version --client'
+                bat 'minikube version'
+            }
+        }
+
+        stage('Install and Build Frontend') {
+            steps {
+                bat 'npm ci'
+                bat 'npm run build'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat "\"%DOCKER%\" build -t %IMAGE_NAME%:latest ."
+                bat 'docker build -t %IMAGE_NAME%:latest .'
             }
         }
 
         stage('Load Image into Minikube') {
             steps {
-                bat "\"%MINIKUBE%\" image load %IMAGE_NAME%:latest"
+                bat 'minikube image load %IMAGE_NAME%:latest'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                bat "\"%KUBECTL%\" rollout restart deployment/cartwish-frontend"
+                bat 'kubectl rollout restart deployment/%DEPLOYMENT_NAME%'
+                bat 'kubectl rollout status deployment/%DEPLOYMENT_NAME% --timeout=120s'
             }
         }
     }
 
     post {
         success {
-            echo 'Frontend pipeline completed successfully!'
+            echo 'Frontend pipeline completed successfully.'
         }
+
         failure {
-            echo 'Pipeline failed. Check logs above.'
+            echo 'Frontend pipeline failed. Review the stage logs.'
+        }
+
+        always {
+            bat 'kubectl get pods || exit 0'
         }
     }
 }
