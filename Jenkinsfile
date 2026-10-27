@@ -22,8 +22,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/asritha-peddi/Cartwish.git'
+                checkout scm
             }
         }
 
