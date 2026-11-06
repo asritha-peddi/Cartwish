@@ -1,14 +1,14 @@
 ﻿# CartWish Frontend
 
-React and Vite frontend for the CartWish e-commerce application. This repository includes Docker, Kubernetes, Helm, Jenkins and Argo CD configurations for local DevOps automation.
+CartWish is an e-commerce application built with React and Vite. This repository contains the frontend and its Docker, Kubernetes, Helm, Jenkins, and Argo CD configuration for a local Minikube deployment.
+
+[Backend source code](https://github.com/asritha-peddi/cartwishbackend)
 
 ## Application Features
 
 - User registration and login
-- Product browsing and search
-- Category filtering
-- Product details
-- Shopping cart
+- Product browsing, search, and category filtering
+- Product details and shopping cart
 - Order placement
 - Protected application routes
 - Responsive user interface
@@ -22,48 +22,47 @@ React and Vite frontend for the CartWish e-commerce application. This repository
 | Containerization | Docker |
 | Orchestration | Kubernetes and Minikube |
 | Packaging | Helm |
-| CI/CD | Jenkins |
-| GitOps | Argo CD |
+| Build automation | Jenkins |
+| GitOps deployment | Argo CD |
+| Backend image scanning | Trivy |
+| Monitoring | Prometheus and kube-state-metrics |
+| Database | MongoDB Atlas, accessed through the backend |
 
 ## Repository Structure
 
-- `argocd/` - Argo CD Application manifest
-- `cartwish-frontend-chart/` - Frontend Helm chart
-- `k8s/` - Raw Kubernetes manifests
-- `public/` - Public frontend assets
-- `src/` - React source code
-- `.env.example` - Example environment configuration
-- `Dockerfile` - Multi-stage frontend image
-- `Jenkinsfile` - Jenkins deployment pipeline
-- `package.json` - Dependencies and scripts
-- `README.md` - Project documentation
+| Path | Purpose |
+| --- | --- |
+| `src/` | React source code |
+| `public/` | Public frontend assets |
+| `k8s/` | Raw Kubernetes manifests |
+| `cartwish-frontend-chart/` | Frontend Helm chart |
+| `argocd/` | Argo CD Application manifest |
+| `.env.example` | Example local environment configuration |
+| `Dockerfile` | Builds the frontend and packages it with NGINX |
+| `nginx.conf` | Serves static files and falls back to `index.html` for React routes |
+| `Jenkinsfile` | Builds and verifies the frontend image in Minikube |
 
 ## Environment Configuration
 
-Create a local `.env` file from `.env.example`.
+Create a local `.env` file from `.env.example` and set the backend URLs:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api/
 VITE_BACKEND_URL=http://localhost:5000
 ```
 
-The local `.env` file is ignored by Git. Update these values for the environment where the backend is available.
+Vite uses these values at build time for the production bundle. Rebuild the frontend image if the backend URLs change.
 
 ## Run Locally
 
-Install dependencies:
+Start the backend on port `5000`, then run:
 
 ```bash
-npm install
-```
-
-Start the development server:
-
-```bash
+npm ci
 npm run dev
 ```
 
-Create a production build:
+To create a production build:
 
 ```bash
 npm run build
@@ -71,127 +70,92 @@ npm run build
 
 ## Docker
 
-The Dockerfile uses a multi-stage build:
-
-1. Node.js installs dependencies and builds the Vite application.
-2. NGINX serves the compiled static assets.
-
-Build the image:
+The Dockerfile builds the Vite application with Node.js and serves the compiled assets with NGINX. The NGINX fallback allows routes such as `/products` to open directly and survive a browser refresh.
 
 ```bash
 docker build -t cartwish-frontend:latest .
+docker run --rm -p 127.0.0.1:8083:80 cartwish-frontend:latest
 ```
 
-Run the container:
+Open `http://localhost:8083/products` with the backend available at `http://localhost:5000`.
 
-```bash
-docker run -p 8080:80 cartwish-frontend:latest
-```
+## Kubernetes and Helm
 
-Open:
-
-```text
-http://localhost:8080
-```
-
-## Kubernetes
-
-Start Minikube:
+Start Minikube and validate the chart:
 
 ```bash
 minikube start
-```
-
-Load the local frontend image:
-
-```bash
-minikube image load cartwish-frontend:latest
-```
-
-Apply the raw manifests:
-
-```bash
-kubectl apply -f k8s/frontend-deployment.yaml
-kubectl apply -f k8s/frontend-service.yaml
-```
-
-Check the deployment:
-
-```bash
-kubectl get pods
-kubectl get services
-kubectl rollout status deployment/cartwish-frontend
-```
-
-The Deployment includes:
-
-- Two frontend replicas
-- NGINX HTTP readiness and liveness probes
-- CPU and memory requests and limits
-- NodePort service access
-
-## Helm
-
-Validate the chart:
-
-```bash
 helm lint ./cartwish-frontend-chart
-```
-
-Render the manifests:
-
-```bash
 helm template cartwish-frontend ./cartwish-frontend-chart
 ```
 
-Install or upgrade:
+The frontend chart defines two replicas, HTTP health probes, resource requests and limits, and a NodePort Service. It uses `imagePullPolicy: Never`, so the image tag in `cartwish-frontend-chart/values.yaml` must already exist in Minikube before deployment.
 
-```bash
-helm upgrade --install cartwish-frontend ./cartwish-frontend-chart
-```
+Raw manifests are also available under `k8s/` for a separate manual setup.
 
 ## Jenkins Pipeline
 
-The Jenkins pipeline performs these stages:
+The frontend pipeline checks out the branch configured in the Jenkins job, verifies the Minikube cluster identity, and builds a Docker image tagged with the build number and Git commit. It exports the image, loads it into Minikube, verifies the tag is present, and archives the image reference.
 
-1. Checks out the `main` branch.
-2. Verifies Docker, kubectl and Minikube.
-3. Installs frontend dependencies.
-4. Creates a production Vite build.
-5. Builds the Docker image.
-6. Loads the image into Minikube.
-7. Restarts the Kubernetes Deployment.
-8. Waits for the rollout to complete.
+The `Jenkinsfile` is configured for a Windows agent with Docker, kubectl, Minikube, and Git. The Docker build runs the Node.js and Vite build steps.
 
-The Jenkins Windows agent must have Docker, kubectl, Minikube, Node.js and npm available through `PATH`.
+## Argo CD Deployment
 
-## Argo CD
+The frontend Application manifest is `argocd/cartwish-frontend-argocd-app.yaml`. It tracks the `main` branch and renders the `cartwish-frontend-chart` Helm chart.
 
-The Argo CD Application manifest is located at:
-
-```text
-argocd/cartwish-frontend-argocd-app.yaml
-```
-
-It tracks the `main` branch and deploys the `cartwish-frontend-chart` Helm chart with automated synchronization, pruning and self-healing.
-
-Apply the manifest after installing Argo CD:
+After installing Argo CD, register the Application:
 
 ```bash
-kubectl apply -f argocd/cartwish-frontend-argocd-app.yaml
+kubectl --context=minikube apply -f argocd/cartwish-frontend-argocd-app.yaml
 ```
+
+To release a new image, update the chart's image tag in Git after Jenkins verifies that image in Minikube. Merge the change into `main`, then verify the Argo CD sync and Kubernetes rollout:
+
+```bash
+kubectl --context=minikube -n argocd get applications
+kubectl --context=minikube -n default rollout status deployment/cartwish-frontend
+```
+
+## Open the CartWish Demo
+
+Run each command in a separate terminal and keep both terminals open:
+
+```bash
+kubectl --context=minikube -n default port-forward svc/cartwish-frontend-service 8083:80
+```
+
+```bash
+kubectl --context=minikube -n default port-forward svc/cartwish-backend-service 5000:5000
+```
+
+Open `http://localhost:8083/products`. Refresh the page and confirm that the product cards still load.
+
+## Deployment and Monitoring Verification
+
+- **Image security:** The backend image passed the Jenkins Trivy gate for HIGH and CRITICAL vulnerabilities before it was loaded into Minikube.
+- **Frontend routing:** Verified that `/products` opens directly and loads product data after a browser refresh.
+- **Backend recovery:** After a MongoDB Atlas connection failure, verified a successful backend rollout and confirmed that product data loaded again.
+- **Prometheus:** Verified that both backend pods were Ready using metrics from kube-state-metrics.
+
+In the Prometheus query page, run:
+
+```promql
+sum(kube_pod_status_ready{namespace="default", pod=~"cartwish-backend-.*", condition="true"})
+```
+
+The observed result was `2`, matching the two Ready backend replicas. Grafana dashboard verification is pending.
 
 ## Troubleshooting
 
 ```bash
-kubectl get pods
-kubectl describe pod POD_NAME
-kubectl logs POD_NAME
-kubectl get events
-kubectl rollout status deployment/cartwish-frontend
-kubectl rollout undo deployment/cartwish-frontend
+kubectl --context=minikube -n default get deployments,pods,services
+kubectl --context=minikube -n default describe pod POD_NAME
+kubectl --context=minikube -n default logs deployment/cartwish-backend --tail=30
+kubectl --context=minikube -n default get events --sort-by=.lastTimestamp
 ```
+
+For an Argo CD managed rollback, revert the image tag in Git and sync the Application.
 
 ## Related Repository
 
-Backend: https://github.com/asritha-peddi/cartwishbackend
+[CartWish Backend](https://github.com/asritha-peddi/cartwishbackend)
