@@ -170,3 +170,15 @@ For an Argo CD managed rollback, revert the image tag in Git and sync the Applic
 
 ### Argo CD deployment
 ![CartWish frontend and backend shown as Healthy and Synced](docs/screenshots/cartwish-argocd.png)
+
+## Pipeline and Rollout Evidence
+
+![Successful Jenkins frontend build #5](docs/screenshots/cartwish-jenkins.png)
+
+### Resolving ErrImageNeverPull
+
+The frontend deployment referenced an image tag that was missing from Minikube. Loading that exact image into Minikube allowed the rollout to complete.
+
+![Frontend pod reporting ErrImageNeverPull](docs/screenshots/cartwish-image-error.png)
+
+![Successful frontend rollout after loading the image](docs/screenshots/cartwish-image-recovery.png)
