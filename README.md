@@ -159,3 +159,14 @@ For an Argo CD managed rollback, revert the image tag in Git and sync the Applic
 ## Related Repository
 
 [CartWish Backend](https://github.com/asritha-peddi/cartwishbackend)
+
+## Demo Screenshots
+
+### Product catalog
+![CartWish products and category filters](docs/screenshots/cartwish-products.png)
+
+### Prometheus readiness check
+![Prometheus query returning two Ready backend pods](docs/screenshots/cartwish-prometheus.png)
+
+### Argo CD deployment
+![CartWish frontend and backend shown as Healthy and Synced](docs/screenshots/cartwish-argocd.png)
